@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:macro/screens/auth/auth_screen.dart';
+import 'package:macro/screens/day_summary/day_summary_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -16,7 +17,8 @@ class MyApp extends StatelessWidget {
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
-      home: AuthScreen(),
+      // home: AuthScreen(),
+      home: DaySummaryScreen(),
     );
   }
 }
