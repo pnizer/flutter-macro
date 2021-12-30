@@ -1,11 +1,12 @@
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macro/models/day_meals.dart';
 import 'package:macro/models/day_target.dart';
 import 'package:macro/models/meal.dart';
 import 'package:macro/models/meal_amount.dart';
-import 'package:macro/widgets/macro_progress.dart';
+import 'package:macro/repositories/day_meals_repository.dart';
+import 'package:macro/widgets/day_macro_summary.dart';
 import 'package:macro/widgets/meal_amount_card.dart';
+import 'package:macro/widgets/week_macro_summary.dart';
 
 import 'select_meal_screen.dart';
 
@@ -17,13 +18,33 @@ class DaySummaryScreen extends StatefulWidget {
 }
 
 class _DaySummaryScreenState extends State<DaySummaryScreen> {
-  final target = DayTarget(81, 2.5, 0.8, 2);
+  final dayMealsRepository = DayMealsRepository();
+  final target = const DayTarget(81, 2.5, 0.8, 2);
 
   final PageController _pageController = PageController();
 
-  var _dayMeals = DayMeals("29/12/2021",
-      meals: [],
-      resetAccumulator: false);
+  var _dayMeals = const DayMeals('', meals: [], resetAccumulator: false);
+
+  @override
+  void initState() {
+    final now = DateTime.now();
+    final today =
+        "${now.year.toString()}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
+
+    dayMealsRepository.findById(today).then((dayMeals) async {
+      if (dayMeals != null) {
+        setState(() {
+          _dayMeals = dayMeals;
+        });
+      } else {
+        setState(() {
+          _dayMeals = DayMeals(today, meals: const [], resetAccumulator: false);
+          dayMealsRepository.save(today, _dayMeals);
+        });
+      }
+    });
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,22 +53,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         title: Text("Macro"),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final Meal? meal = await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => const SelectMealScreen()),
-          );
-
-          if (meal == null) return;
-          final defaultMealAmount = MealAmount(meal, meal.baseAmount);
-          final mealAmount = await showEditMealAmountDialog(defaultMealAmount) ?? defaultMealAmount;
-
-          setState(() {
-            _dayMeals = _dayMeals.copyWith(
-              meals: [mealAmount, ..._dayMeals.meals],
-            );
-          });
-        },
+        onPressed: _onAddButtonPressed,
         child: const Icon(Icons.add),
       ),
       body: SingleChildScrollView(
@@ -66,161 +72,122 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                 ],
               ),
             ),
-                ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
+            ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
                 itemCount: _dayMeals.meals.length,
                 itemBuilder: (context, index) {
                   final mealAmount = _dayMeals.meals[index];
                   return Dismissible(
                     key: Key(mealAmount.hashCode.toString()),
                     child: MealAmountCard(
-                      onTap: () async {
-                        final newMealAmount = await showEditMealAmountDialog(mealAmount);
-                        if (newMealAmount == null) return;
-
-                        setState(() {
-                          _dayMeals = _dayMeals.copyWith(
-                              meals: _dayMeals.meals.map((e) => e == mealAmount ? newMealAmount : e).toList()
-                          );
-                        });
-                      },
+                      onTap: () => _onMealAmountCardTap(mealAmount),
                       mealAmount: mealAmount,
                     ),
-                    onDismissed: (direction) {
-                      setState(() {
-                        _dayMeals = _dayMeals.copyWith(
-                          meals: _dayMeals.meals.where((e) => e != mealAmount).toList()
-                        );
-                      });
-                    },
+                    onDismissed: (_) => _onMealAmountCardDismissed(mealAmount),
                   );
-                }
-              ),
+                }),
           ],
         ),
       ),
     );
   }
 
-  Future<MealAmount?> showEditMealAmountDialog(MealAmount mealAmount) async {
+  Future<void> _onAddButtonPressed() async {
+    final Meal? meal = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const SelectMealScreen()),
+    );
+
+    if (meal == null) return;
+    final defaultMealAmount = MealAmount(meal, meal.baseAmount);
+    final mealAmount =
+        await _showEditMealAmountDialog(defaultMealAmount) ?? defaultMealAmount;
+
+    setState(() {
+      _dayMeals = _dayMeals.copyWith(
+        meals: [mealAmount, ..._dayMeals.meals],
+      );
+      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+    });
+  }
+
+  Future<void> _onMealAmountCardTap(MealAmount mealAmount) async {
+    final newMealAmount = await _showEditMealAmountDialog(mealAmount);
+    if (newMealAmount == null) return;
+
+    setState(() {
+      _dayMeals = _dayMeals.copyWith(
+          meals: _dayMeals.meals
+              .map((e) => e == mealAmount ? newMealAmount : e)
+              .toList());
+      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+    });
+  }
+
+  Future<void> _onMealAmountCardDismissed(MealAmount mealAmount) async {
+    setState(() {
+      _dayMeals = _dayMeals.copyWith(
+          meals: _dayMeals.meals
+              .where((e) => e != mealAmount)
+              .toList());
+      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+    });
+  }
+
+  Future<MealAmount?> _showEditMealAmountDialog(MealAmount mealAmount) async {
     return await showDialog<MealAmount>(
         context: context,
         builder: (context) {
-          final controller = TextEditingController(text: mealAmount.amount.toStringAsFixed(0));
-          return AlertDialog(
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: TextField(
-                      autofocus: true,
-                      controller: controller,
-                    )),
-                    Text(mealAmount.meal.unity),
-                  ],
-                )
+          var highlighted = mealAmount.highlighted;
+          final controller =
+              TextEditingController(text: mealAmount.amount.toStringAsFixed(1));
+          controller.selection = TextSelection(
+              baseOffset: 0, extentOffset: controller.text.length);
+
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                          child: TextField(
+                        autofocus: true,
+                        controller: controller,
+                        keyboardType: TextInputType.number,
+                      )),
+                      Text(mealAmount.meal.unity),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      Text('Marcar'),
+                      Checkbox(
+                        value: highlighted,
+                        onChanged: (_) {
+                          setState(() {
+                            highlighted = !highlighted;
+                          });
+                        },
+                      ),
+                    ],
+                  )
+                ],
+              ),
+              title: Text(mealAmount.meal.name),
+              actions: <Widget>[
+                TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      Navigator.of(context).pop(mealAmount.copyWith(
+                          amount: double.parse(controller.value.text),
+                          highlighted: highlighted));
+                    })
               ],
-            ),
-            title: Text(mealAmount.meal.name),
-            actions: <Widget>[
-              TextButton(
-                  child: const Text('OK'),
-                  onPressed: () {
-                    Navigator.of(context).pop(mealAmount.copyWith(
-                      amount: double.parse(controller.value.text)
-                    ));
-                  }
-              )
-            ],
-          );
-        }
-    );
-  }
-
-}
-
-class DayMacroSummary extends StatelessWidget {
-  final DayMeals dayMeals;
-  final DayTarget target;
-
-  const DayMacroSummary(
-      {Key? key, required this.dayMeals, required this.target})
-      : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-            padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.today_outlined),
-                Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text(dayMeals.date, textScaleFactor: 1.3),
-                ),
-              ],
-            )),
-        MacroProgress(
-          type: "C",
-          target: target.carb,
-          value: dayMeals.carbTotal,
-        ),
-        MacroProgress(
-          type: "G",
-          target: target.fat,
-          value: dayMeals.fatTotal,
-        ),
-        MacroProgress(
-          type: "P",
-          target: target.protein,
-          value: dayMeals.proteinTotal,
-        ),
-      ],
-    );
-  }
-}
-
-class WeekMacroSummary extends StatelessWidget {
-  const WeekMacroSummary({
-    Key? key,
-  }) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-            padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text('Acumulado', textScaleFactor: 1.3),
-                ),
-              ],
-            )),
-        MacroProgress(
-          type: "C",
-          target: 202.5,
-          value: 250.4,
-        ),
-        MacroProgress(
-          type: "G",
-          target: 64.8,
-          value: 34.2,
-        ),
-        MacroProgress(
-          type: "P",
-          target: 162,
-          value: 30,
-        ),
-      ],
-    );
+            );
+          });
+        });
   }
 }

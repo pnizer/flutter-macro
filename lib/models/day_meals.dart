@@ -19,4 +19,18 @@ class DayMeals {
       resetAccumulator: resetAccumulator ?? this.resetAccumulator,
     );
   }
+
+  factory DayMeals.fromJson(Map<String, dynamic> json) {
+    return DayMeals(
+      json['date'],
+      meals: (json['meals'] as List<dynamic>).map((e) => MealAmount.fromJson(e)).toList(),
+      resetAccumulator: json['resetAccumulator'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'date': date,
+    'meals': meals.map((e) => e.toJson()).toList(),
+    'resetAccumulator': resetAccumulator,
+  };
 }

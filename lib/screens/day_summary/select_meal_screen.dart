@@ -1,7 +1,7 @@
-
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macro/models/meal.dart';
+import 'package:macro/repositories/meal_repository.dart';
 import 'package:macro/widgets/meal_card.dart';
 
 class SelectMealScreen extends StatefulWidget {
@@ -12,21 +12,41 @@ class SelectMealScreen extends StatefulWidget {
 }
 
 class _SelectMealScreenState extends State<SelectMealScreen> {
-  var _filter = '';
+  late final _mealRepository = MealRepository();
 
-  final _meals = <Meal>[
-    Meal('Pão', 'uni', 1, 23, 0, 3),
-    Meal('Presunto', 'g', 20, 0, 0.5, 3.35),
-    Meal('Queijo', 'g', 20, 0.4, 4.8, 4.8),
-    Meal('Mantega', 'g', 10, 0, 8.6, 0),
-    Meal('Arroz', 'g', 50, 14, 0.1, 1.2),
-  ];
+  var _filter = '';
+  var _meals = [];
+
+  @override
+  void initState() {
+    _mealRepository.findAll().then((meals) => setState(() {
+          _meals = meals;
+        }));
+    super.initState();
+  }
 
   @override
   Widget build(BuildContext context) {
+    final filteredMeals = _meals
+        .where(
+            (meal) => meal.name.toLowerCase().contains(_filter.toLowerCase()))
+        .toList();
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Adicionar refeição'),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () async {
+          final meal = await _showEditMealAmountDialog(
+              const Meal('', 0, 0, 0, 100, 'g'));
+          if (meal == null) return;
+          await _mealRepository.add(meal);
+          setState(() {
+            _meals = [..._meals, meal];
+          });
+        },
+        child: const Icon(Icons.add),
       ),
       body: Column(
         children: [
@@ -36,28 +56,147 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
                 _filter = text;
               });
             },
+            autofocus: true,
             decoration: const InputDecoration(
-              contentPadding: EdgeInsets.symmetric(vertical: 15, horizontal: 10),
+              contentPadding:
+                  EdgeInsets.symmetric(vertical: 15, horizontal: 10),
               hintText: "Filtro",
               suffixIcon: Icon(Icons.filter_alt),
             ),
           ),
-          Expanded(child: SingleChildScrollView(
-            child: Column(
-              children: [
-                ..._meals
-                  .where((meal) => meal.name.toLowerCase().contains(_filter.toLowerCase()))
-                  .map((meal) => MealCard(
-                    meal: meal,
-                    onTap: () {
-                      Navigator.pop(context, meal);
-                    },
-                ))
-              ],
+          Expanded(
+            child: ListView.builder(
+              itemCount: filteredMeals.length,
+              itemBuilder: (context, index) {
+                final meal = filteredMeals[index];
+
+                return MealCard(
+                  meal: meal,
+                  onTap: () {
+                    Navigator.pop(context, meal);
+                  },
+                  onLongPress: () async {
+                    final newMeal = await _showEditMealAmountDialog(meal);
+
+                    if (newMeal == null) return;
+                    final indexWithoutFilter = _meals.indexOf(meal);
+
+                    await _mealRepository.save(indexWithoutFilter, newMeal);
+                    final meals = await _mealRepository.findAll();
+                    setState(() {
+                      _meals = meals;
+                    });
+                  },
+                );
+              },
             ),
-          ))
+          )
         ],
       ),
     );
+  }
+
+  Future<Meal?> _showEditMealAmountDialog(Meal meal) async {
+    return await showDialog<Meal>(
+        context: context,
+        builder: (context) {
+          final nameController = TextEditingController(text: meal.name);
+          final carbController =
+              TextEditingController(text: meal.carb.toString());
+          final fatController =
+              TextEditingController(text: meal.fat.toString());
+          final proteinController =
+              TextEditingController(text: meal.protein.toString());
+          final baseAmountController =
+              TextEditingController(text: meal.baseAmount.toString());
+          final unityController = TextEditingController(text: meal.unity);
+
+          return StatefulBuilder(builder: (context, setState) {
+            return AlertDialog(
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextField(
+                    controller: nameController,
+                    autofocus: true,
+                    decoration: const InputDecoration(
+                      label: Text("Nome"),
+                    ),
+                  ),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                            width: 50,
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              controller: carbController,
+                              decoration: const InputDecoration(
+                                label: Text("C"),
+                              ),
+                            )),
+                        SizedBox(
+                            width: 50,
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              controller: fatController,
+                              decoration: const InputDecoration(
+                                label: Text("G"),
+                              ),
+                            )),
+                        SizedBox(
+                            width: 50,
+                            child: TextField(
+                              keyboardType: TextInputType.number,
+                              controller: proteinController,
+                              decoration: const InputDecoration(
+                                label: Text("P"),
+                              ),
+                            )),
+                      ]),
+                  Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        SizedBox(
+                          width: 100,
+                          child: TextField(
+                            keyboardType: TextInputType.number,
+                            controller: baseAmountController,
+                            decoration: const InputDecoration(
+                              label: Text("Quantidade base"),
+                            ),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 100,
+                          child: TextField(
+                            controller: unityController,
+                            decoration: const InputDecoration(
+                              label: Text("Unidade"),
+                            ),
+                          ),
+                        ),
+                      ]),
+                ],
+              ),
+              title: Text("Refeição"),
+              actions: <Widget>[
+                TextButton(
+                    child: const Text('OK'),
+                    onPressed: () {
+                      final meal = Meal(
+                        nameController.value.text,
+                        double.parse(carbController.value.text),
+                        double.parse(fatController.value.text),
+                        double.parse(proteinController.value.text),
+                        double.parse(baseAmountController.value.text),
+                        unityController.value.text,
+                      );
+                      Navigator.of(context).pop(meal);
+                    })
+              ],
+            );
+          });
+        });
   }
 }
