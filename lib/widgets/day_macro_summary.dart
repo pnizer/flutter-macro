@@ -7,9 +7,13 @@ import 'macro_progress.dart';
 class DayMacroSummary extends StatelessWidget {
   final DayMeals dayMeals;
   final DayTarget target;
+  final VoidCallback? onDatePressed;
+  final VoidCallback? onBackPressed;
+  final VoidCallback? onForwardPressed;
 
   const DayMacroSummary(
-      {Key? key, required this.dayMeals, required this.target})
+      {Key? key, required this.dayMeals, required this.target,
+        this.onDatePressed, this.onBackPressed, this.onForwardPressed})
       : super(key: key);
 
   @override
@@ -19,18 +23,40 @@ class DayMacroSummary extends StatelessWidget {
 
     return Column(
       children: [
-        Padding(
-            padding: const EdgeInsets.fromLTRB(10, 20, 10, 10),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.today_outlined),
-                Padding(
-                  padding: const EdgeInsets.only(left: 10),
-                  child: Text(formattedDate, textScaleFactor: 1.3),
-                ),
-              ],
-            )),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            TextButton(
+              style: TextButton.styleFrom(
+                primary: Colors.black87,
+              ),
+              onPressed: onBackPressed,
+              child: const Icon(Icons.arrow_back),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                primary: Colors.black87,
+              ),
+              onPressed: onDatePressed,
+              child: Row(
+                children: <Widget>[
+                  const Icon(Icons.today_outlined),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 10),
+                    child: Text(formattedDate, textScaleFactor: 1.2),
+                  ),
+                ]
+              )
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                primary: Colors.black87,
+              ),
+              onPressed: onForwardPressed,
+              child: const Icon(Icons.arrow_forward),
+            ),
+          ],
+        ),
         MacroProgress(
           type: "C",
           target: target.carb,

@@ -4,6 +4,7 @@ import 'package:macro/models/day_target.dart';
 import 'package:macro/models/meal.dart';
 import 'package:macro/models/meal_amount.dart';
 import 'package:macro/repositories/day_meals_repository.dart';
+import 'package:macro/utils/collections/collections_extension.dart';
 import 'package:macro/widgets/day_macro_summary.dart';
 import 'package:macro/widgets/meal_amount_card.dart';
 import 'package:macro/widgets/week_macro_summary.dart';
@@ -24,6 +25,8 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
   final PageController _pageController = PageController();
 
   var _dayMeals = const DayMeals('', meals: [], resetAccumulator: false);
+  var _allDatesWithDayMeals = <String>[];
+  var _allDayMealsPosition = 0;
 
   @override
   void initState() {
@@ -31,17 +34,20 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
     final today =
         "${now.year.toString()}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}";
 
-    dayMealsRepository.findById(today).then((dayMeals) async {
-      if (dayMeals != null) {
-        setState(() {
-          _dayMeals = dayMeals;
-        });
-      } else {
-        setState(() {
+    dayMealsRepository.findAll().then((allDayMeals) {
+      setState(() {
+        final todayDayMeals = allDayMeals.firstWhereOrNull((element) => element.date == today);
+        if (todayDayMeals == null) {
           _dayMeals = DayMeals(today, meals: const [], resetAccumulator: false);
           dayMealsRepository.save(today, _dayMeals);
-        });
-      }
+          _allDatesWithDayMeals = [...allDayMeals.map((e) => e.date), today];
+          _allDayMealsPosition = _allDatesWithDayMeals.length - 1;
+        } else {
+          _dayMeals = todayDayMeals;
+          _allDatesWithDayMeals = allDayMeals.map((e) => e.date).toList();
+          _allDayMealsPosition = _allDatesWithDayMeals.length - 1;
+        }
+      });
     });
     super.initState();
   }
@@ -67,6 +73,37 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                   DayMacroSummary(
                     dayMeals: _dayMeals,
                     target: target,
+                    onBackPressed: _allDayMealsPosition == 0 ? null : () {
+                      setState(() {
+                        _allDayMealsPosition--;
+                        dayMealsRepository.findById(_allDatesWithDayMeals[_allDayMealsPosition]).then((dayMeals) {
+                          setState(() {
+                            _dayMeals = dayMeals!;
+                          });
+                        });
+                      });
+                    },
+                    onForwardPressed: _allDayMealsPosition == _allDatesWithDayMeals.length - 1 ? null : () {
+                      setState(() {
+                        _allDayMealsPosition++;
+                        dayMealsRepository.findById(_allDatesWithDayMeals[_allDayMealsPosition]).then((dayMeals) {
+                          setState(() {
+                            _dayMeals = dayMeals!;
+                          });
+                        });
+                      });
+                    },
+                    onDatePressed: () {
+                      final initialDate = _dayMeals.date.isNotEmpty ? DateTime.parse(_dayMeals.date) : DateTime.now();
+                      final firstDate = DateTime.parse('2021-01-01');
+
+                      showDatePicker(
+                        context: context,
+                        lastDate: DateTime.now(),
+                        initialDate: initialDate,
+                        firstDate: firstDate,
+                      );
+                    },
                   ),
                   WeekMacroSummary()
                 ],
