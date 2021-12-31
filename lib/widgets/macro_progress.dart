@@ -28,8 +28,9 @@ class MacroProgress extends StatelessWidget {
         ),
         Expanded(
             child: LinearProgressIndicator(
-              color: ratio <= 1 ? Theme.of(context).primaryColorDark : Colors.red,
-              value: ratio,
+              color: ratio > 1 ? Colors.red : Theme.of(context).primaryColorDark,
+              backgroundColor: ratio > 1 ? Theme.of(context).primaryColorDark : null,
+              value: ratio > 1 ? ratio - 1 : ratio,
             )
         ),
         Padding(

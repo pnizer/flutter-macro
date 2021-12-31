@@ -14,17 +14,20 @@ class DayMacroSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final date = dayMeals.date.isNotEmpty ? DateTime.parse(dayMeals.date) : DateTime.now();
+    final formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString()}";
+
     return Column(
       children: [
         Padding(
-            padding: EdgeInsets.fromLTRB(10, 20, 10, 10),
+            padding: const EdgeInsets.fromLTRB(10, 20, 10, 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.today_outlined),
+                const Icon(Icons.today_outlined),
                 Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text(dayMeals.date, textScaleFactor: 1.3),
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text(formattedDate, textScaleFactor: 1.3),
                 ),
               ],
             )),
@@ -43,6 +46,11 @@ class DayMacroSummary extends StatelessWidget {
           target: target.protein,
           value: dayMeals.proteinTotal,
         ),
+        Container(
+          alignment: AlignmentDirectional.centerStart,
+          padding: const EdgeInsets.fromLTRB(40, 5, 5, 5),
+          child: Text('kcal: ${dayMeals.kcalTotal.toStringAsFixed(0)}'),
+        )
       ],
     );
   }

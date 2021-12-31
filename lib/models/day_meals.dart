@@ -13,6 +13,8 @@ class DayMeals {
   double get fatTotal => meals.fold(0, (value, element) => value + element.fat);
   double get proteinTotal => meals.fold(0, (value, element) => value + element.protein);
 
+  double get kcalTotal => carbTotal * 4 + fatTotal * 9 + proteinTotal * 4;
+
   DayMeals copyWith({String? date, List<MealAmount>? meals, bool? resetAccumulator}) {
     return DayMeals(date ?? this.date,
       meals: meals ?? this.meals,
