@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macro/models/meal.dart';
-import 'package:macro/models/meal_amount.dart';
+import 'package:macro/utils/numbers/num_extension.dart';
 
 class MealCard extends StatelessWidget {
   final Meal meal;
@@ -22,7 +22,7 @@ class MealCard extends StatelessWidget {
             onTap: onTap,
             onLongPress: onLongPress,
             leading: Icon(Icons.fastfood),
-            title: Text('${meal.name} - ${meal.baseAmount.toStringAsFixed(1)} $unity'),
+            title: Text('${meal.name} - ${meal.baseAmount.toStringAsFixedIfHasDecimal(1)} $unity'),
             subtitle: Text('C: ${meal.carb.toStringAsFixed(1)}g   G: ${meal.fat.toStringAsFixed(1)}g   P: ${meal.protein.toStringAsFixed(1)}g   \nkcal: ${meal.kcal.toStringAsFixed(0)}'),
           ),
         ],

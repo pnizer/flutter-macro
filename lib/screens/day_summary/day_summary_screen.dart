@@ -5,6 +5,7 @@ import 'package:macro/models/meal.dart';
 import 'package:macro/models/meal_amount.dart';
 import 'package:macro/repositories/day_meals_repository.dart';
 import 'package:macro/utils/collections/collections_extension.dart';
+import 'package:macro/utils/numbers/num_extension.dart';
 import 'package:macro/widgets/day_macro_summary.dart';
 import 'package:macro/widgets/meal_amount_card.dart';
 import 'package:macro/widgets/week_macro_summary.dart';
@@ -265,7 +266,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         builder: (context) {
           var highlighted = mealAmount.highlighted;
           final controller =
-              TextEditingController(text: mealAmount.amount.toStringAsFixed(1));
+              TextEditingController(text: mealAmount.amount.toStringAsFixedIfHasDecimal(1));
           controller.selection = TextSelection(
               baseOffset: 0, extentOffset: controller.text.length);
 
