@@ -27,6 +27,9 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
   var _allDayMeals = <DayMeals>[];
   var _allDayMealsPosition = -1;
 
+  var _undoStack = <_States>[];
+  var _undoStackPosition = 0;
+
   @override
   void initState() {
     final now = DateTime.now();
@@ -35,9 +38,11 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
 
     dayMealsRepository.findAll().then((allDayMeals) {
       setState(() {
-        final todayDayMeals = allDayMeals.firstWhereOrNull((element) => element.date == today);
+        final todayDayMeals =
+            allDayMeals.firstWhereOrNull((element) => element.date == today);
         if (todayDayMeals == null) {
-          final dayMeals = DayMeals(today, meals: const [], resetAccumulator: false);
+          final dayMeals =
+              DayMeals(today, meals: const [], resetAccumulator: false);
           dayMealsRepository.save(today, dayMeals);
           _allDayMeals = [...allDayMeals, dayMeals];
           _allDayMealsPosition = _allDayMeals.length - 1;
@@ -52,75 +57,124 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final dayMeals = _allDayMealsPosition == -1 ? null : _allDayMeals[_allDayMealsPosition];
+    final dayMeals =
+        _allDayMealsPosition == -1 ? null : _allDayMeals[_allDayMealsPosition];
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("Macro"),
+        actions: [
+          PopupMenuButton(
+              itemBuilder: (context) => [
+                    PopupMenuItem(
+                      enabled: _undoStackPosition > 0,
+                      onTap: () {
+                        _undoAction();
+                      },
+                      child: Row(
+                        children: const <Widget>[
+                          Icon(Icons.undo, color: Colors.grey,),
+                          Padding(
+                            padding: EdgeInsets.only(left: 10),
+                            child: Text("Desfazer"),
+                          ),
+                        ],
+                      ),
+                      value: 1,
+                    ),
+                    PopupMenuItem(
+                      enabled: _undoStackPosition < _undoStack.length,
+                      onTap: () {
+                        _redoAction();
+                      },
+                      child: Row(
+                        children: const <Widget>[
+                          Icon(Icons.redo, color: Colors.grey,),
+                          Padding(
+                            padding: EdgeInsets.only(left: 10),
+                            child: Text("Refazer"),
+                          ),
+                        ],
+                      ),
+                      value: 2,
+                    )
+                  ])
+        ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => dayMeals == null ? null : _onAddButtonPressed(dayMeals),
+        onPressed: () =>
+            dayMeals == null ? null : _onAddButtonPressed(dayMeals),
         child: const Icon(Icons.add),
       ),
-      body: dayMeals == null ? const Text('Carregando...') : SingleChildScrollView(
-        child: Column(
-          children: [
-            SizedBox(
-              height: 200,
-              child: PageView(
-                controller: _pageController,
-                children: <Widget>[
-                  DayMacroSummary(
-                    dayMeals: dayMeals,
-                    target: target,
-                    onBackPressed: _allDayMealsPosition == 0 ? null : () {
-                      setState(() {
-                        _allDayMealsPosition--;
-                      });
-                    },
-                    onForwardPressed: _allDayMealsPosition == _allDayMeals.length - 1 ? null : () {
-                      setState(() {
-                        _allDayMealsPosition++;
-                      });
-                    },
-                    onDatePressed: () {
-                      final initialDate = DateTime.parse(dayMeals.date);
-                      final firstDate = DateTime.parse('2021-01-01');
+      body: dayMeals == null
+          ? const Text('Carregando...')
+          : SingleChildScrollView(
+              child: Column(
+                children: [
+                  SizedBox(
+                    height: 200,
+                    child: PageView(
+                      controller: _pageController,
+                      children: <Widget>[
+                        DayMacroSummary(
+                          dayMeals: dayMeals,
+                          target: target,
+                          onBackPressed: _allDayMealsPosition == 0
+                              ? null
+                              : () {
+                                  setState(() {
+                                    _allDayMealsPosition--;
+                                  });
+                                },
+                          onForwardPressed:
+                              _allDayMealsPosition == _allDayMeals.length - 1
+                                  ? null
+                                  : () {
+                                      setState(() {
+                                        _allDayMealsPosition++;
+                                      });
+                                    },
+                          onDatePressed: () {
+                            final initialDate = DateTime.parse(dayMeals.date);
+                            final firstDate = DateTime.parse('2021-01-01');
 
-                      showDatePicker(
-                        context: context,
-                        lastDate: DateTime.now(),
-                        initialDate: initialDate,
-                        firstDate: firstDate,
-                      );
-                    },
+                            showDatePicker(
+                              context: context,
+                              lastDate: DateTime.now(),
+                              initialDate: initialDate,
+                              firstDate: firstDate,
+                            );
+                          },
+                        ),
+                        WeekMacroSummary(
+                          allDayMeals: _allDayMeals,
+                          allDayMealsPosition: _allDayMealsPosition,
+                          dayTarget:
+                              target, // TODO each day meal should have its own day target
+                        )
+                      ],
+                    ),
                   ),
-                  WeekMacroSummary(
-                    allDayMeals: _allDayMeals,
-                    allDayMealsPosition: _allDayMealsPosition,
-                    dayTarget: target, // TODO each day meal should have its own day target
-                  )
+                  ListView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: dayMeals.meals.length,
+                      itemBuilder: (context, index) {
+                        final mealAmount = dayMeals.meals[index];
+                        return Dismissible(
+                          key: Key(mealAmount.hashCode.toString()),
+                          child: MealAmountCard(
+                            onTap: () =>
+                                _onMealAmountCardTap(dayMeals, mealAmount),
+                            mealAmount: mealAmount,
+                          ),
+                          onDismissed: (_) =>
+                              _onMealAmountCardDismissed(dayMeals, mealAmount),
+                        );
+                      }),
                 ],
               ),
             ),
-            ListView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                itemCount: dayMeals.meals.length,
-                itemBuilder: (context, index) {
-                  final mealAmount = dayMeals.meals[index];
-                  return Dismissible(
-                    key: Key(mealAmount.hashCode.toString()),
-                    child: MealAmountCard(
-                      onTap: () => _onMealAmountCardTap(dayMeals, mealAmount),
-                      mealAmount: mealAmount,
-                    ),
-                    onDismissed: (_) => _onMealAmountCardDismissed(dayMeals, mealAmount),
-                  );
-                }),
-          ],
-        ),
-      ),
     );
   }
 
@@ -139,12 +193,50 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
       final newDayMeals = dayMeals.copyWith(
         meals: [mealAmount, ...dayMeals.meals],
       );
-      _allDayMeals[_allDayMealsPosition] = newDayMeals;
-      dayMealsRepository.save(dayMeals.date, newDayMeals);
+      _changeCurrentDayMeals(newDayMeals);
     });
   }
 
-  Future<void> _onMealAmountCardTap(DayMeals dayMeals, MealAmount mealAmount) async {
+  void _changeCurrentDayMeals(DayMeals newDayMeals) {
+    _pushUndoState(newDayMeals);
+    _allDayMeals[_allDayMealsPosition] = newDayMeals;
+    dayMealsRepository.save(newDayMeals.date, newDayMeals);
+  }
+
+  void _pushUndoState(newDayMeals) {
+    if (_undoStackPosition < _undoStack.length) {
+      _undoStack = _undoStack.sublist(0, _undoStackPosition);
+    }
+    _undoStack
+        .add(_States(_allDayMealsPosition,
+          oldDayMeals: _allDayMeals[_allDayMealsPosition],
+          newDayMeals: newDayMeals
+      ));
+    _undoStackPosition++;
+  }
+
+  void _undoAction() {
+    setState(() {
+      final action = _undoStack[_undoStackPosition - 1];
+      _allDayMealsPosition = action.position;
+      _allDayMeals[action.position] = action.oldDayMeals;
+      dayMealsRepository.save(action.oldDayMeals.date, action.oldDayMeals);
+      _undoStackPosition--;
+    });
+  }
+
+  void _redoAction() {
+    setState(() {
+      final action = _undoStack[_undoStackPosition];
+      _allDayMealsPosition = action.position;
+      _allDayMeals[action.position] = action.newDayMeals;
+      dayMealsRepository.save(action.newDayMeals.date, action.newDayMeals);
+      _undoStackPosition++;
+    });
+  }
+
+  Future<void> _onMealAmountCardTap(
+      DayMeals dayMeals, MealAmount mealAmount) async {
     final newMealAmount = await _showEditMealAmountDialog(mealAmount);
     if (newMealAmount == null) return;
 
@@ -154,19 +246,16 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
               .map((e) => e == mealAmount ? newMealAmount : e)
               .toList());
 
-      _allDayMeals[_allDayMealsPosition] = newDayMeals;
-      dayMealsRepository.save(dayMeals.date, newDayMeals);
+      _changeCurrentDayMeals(newDayMeals);
     });
   }
 
-  Future<void> _onMealAmountCardDismissed(DayMeals dayMeals, MealAmount mealAmount) async {
+  Future<void> _onMealAmountCardDismissed(
+      DayMeals dayMeals, MealAmount mealAmount) async {
     setState(() {
       final newDayMeals = dayMeals.copyWith(
-          meals: dayMeals.meals
-              .where((e) => e != mealAmount)
-              .toList());
-      _allDayMeals[_allDayMealsPosition] = newDayMeals;
-      dayMealsRepository.save(dayMeals.date, newDayMeals);
+          meals: dayMeals.meals.where((e) => e != mealAmount).toList());
+      _changeCurrentDayMeals(newDayMeals);
     });
   }
 
@@ -225,4 +314,12 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
           });
         });
   }
+}
+
+class _States {
+  final int position;
+  final DayMeals oldDayMeals;
+  final DayMeals newDayMeals;
+
+  _States(this.position, {required this.oldDayMeals, required this.newDayMeals});
 }
