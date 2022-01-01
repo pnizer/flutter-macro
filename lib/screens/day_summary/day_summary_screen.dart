@@ -12,7 +12,7 @@ import 'package:macro/widgets/week_macro_summary.dart';
 import 'select_meal_screen.dart';
 
 class DaySummaryScreen extends StatefulWidget {
-  DaySummaryScreen({Key? key}) : super(key: key);
+  const DaySummaryScreen({Key? key}) : super(key: key);
 
   @override
   State<DaySummaryScreen> createState() => _DaySummaryScreenState();
@@ -24,9 +24,8 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
 
   final PageController _pageController = PageController();
 
-  var _dayMeals = const DayMeals('', meals: [], resetAccumulator: false);
-  var _allDatesWithDayMeals = <String>[];
-  var _allDayMealsPosition = 0;
+  var _allDayMeals = <DayMeals>[];
+  var _allDayMealsPosition = -1;
 
   @override
   void initState() {
@@ -38,14 +37,13 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
       setState(() {
         final todayDayMeals = allDayMeals.firstWhereOrNull((element) => element.date == today);
         if (todayDayMeals == null) {
-          _dayMeals = DayMeals(today, meals: const [], resetAccumulator: false);
-          dayMealsRepository.save(today, _dayMeals);
-          _allDatesWithDayMeals = [...allDayMeals.map((e) => e.date), today];
-          _allDayMealsPosition = _allDatesWithDayMeals.length - 1;
+          final dayMeals = DayMeals(today, meals: const [], resetAccumulator: false);
+          dayMealsRepository.save(today, dayMeals);
+          _allDayMeals = [...allDayMeals, dayMeals];
+          _allDayMealsPosition = _allDayMeals.length - 1;
         } else {
-          _dayMeals = todayDayMeals;
-          _allDatesWithDayMeals = allDayMeals.map((e) => e.date).toList();
-          _allDayMealsPosition = _allDatesWithDayMeals.length - 1;
+          _allDayMeals = allDayMeals;
+          _allDayMealsPosition = _allDayMeals.length - 1;
         }
       });
     });
@@ -54,15 +52,17 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final dayMeals = _allDayMealsPosition == -1 ? null : _allDayMeals[_allDayMealsPosition];
+
     return Scaffold(
       appBar: AppBar(
-        title: Text("Macro"),
+        title: const Text("Macro"),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _onAddButtonPressed,
+        onPressed: () => dayMeals == null ? null : _onAddButtonPressed(dayMeals),
         child: const Icon(Icons.add),
       ),
-      body: SingleChildScrollView(
+      body: dayMeals == null ? const Text('Carregando...') : SingleChildScrollView(
         child: Column(
           children: [
             SizedBox(
@@ -71,30 +71,20 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                 controller: _pageController,
                 children: <Widget>[
                   DayMacroSummary(
-                    dayMeals: _dayMeals,
+                    dayMeals: dayMeals,
                     target: target,
                     onBackPressed: _allDayMealsPosition == 0 ? null : () {
                       setState(() {
                         _allDayMealsPosition--;
-                        dayMealsRepository.findById(_allDatesWithDayMeals[_allDayMealsPosition]).then((dayMeals) {
-                          setState(() {
-                            _dayMeals = dayMeals!;
-                          });
-                        });
                       });
                     },
-                    onForwardPressed: _allDayMealsPosition == _allDatesWithDayMeals.length - 1 ? null : () {
+                    onForwardPressed: _allDayMealsPosition == _allDayMeals.length - 1 ? null : () {
                       setState(() {
                         _allDayMealsPosition++;
-                        dayMealsRepository.findById(_allDatesWithDayMeals[_allDayMealsPosition]).then((dayMeals) {
-                          setState(() {
-                            _dayMeals = dayMeals!;
-                          });
-                        });
                       });
                     },
                     onDatePressed: () {
-                      final initialDate = _dayMeals.date.isNotEmpty ? DateTime.parse(_dayMeals.date) : DateTime.now();
+                      final initialDate = DateTime.parse(dayMeals.date);
                       final firstDate = DateTime.parse('2021-01-01');
 
                       showDatePicker(
@@ -105,23 +95,27 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       );
                     },
                   ),
-                  WeekMacroSummary()
+                  WeekMacroSummary(
+                    allDayMeals: _allDayMeals,
+                    allDayMealsPosition: _allDayMealsPosition,
+                    dayTarget: target, // TODO each day meal should have its own day target
+                  )
                 ],
               ),
             ),
             ListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                itemCount: _dayMeals.meals.length,
+                itemCount: dayMeals.meals.length,
                 itemBuilder: (context, index) {
-                  final mealAmount = _dayMeals.meals[index];
+                  final mealAmount = dayMeals.meals[index];
                   return Dismissible(
                     key: Key(mealAmount.hashCode.toString()),
                     child: MealAmountCard(
-                      onTap: () => _onMealAmountCardTap(mealAmount),
+                      onTap: () => _onMealAmountCardTap(dayMeals, mealAmount),
                       mealAmount: mealAmount,
                     ),
-                    onDismissed: (_) => _onMealAmountCardDismissed(mealAmount),
+                    onDismissed: (_) => _onMealAmountCardDismissed(dayMeals, mealAmount),
                   );
                 }),
           ],
@@ -130,7 +124,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
     );
   }
 
-  Future<void> _onAddButtonPressed() async {
+  Future<void> _onAddButtonPressed(DayMeals dayMeals) async {
     final Meal? meal = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const SelectMealScreen()),
@@ -142,33 +136,37 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         await _showEditMealAmountDialog(defaultMealAmount) ?? defaultMealAmount;
 
     setState(() {
-      _dayMeals = _dayMeals.copyWith(
-        meals: [mealAmount, ..._dayMeals.meals],
+      final newDayMeals = dayMeals.copyWith(
+        meals: [mealAmount, ...dayMeals.meals],
       );
-      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+      _allDayMeals[_allDayMealsPosition] = newDayMeals;
+      dayMealsRepository.save(dayMeals.date, newDayMeals);
     });
   }
 
-  Future<void> _onMealAmountCardTap(MealAmount mealAmount) async {
+  Future<void> _onMealAmountCardTap(DayMeals dayMeals, MealAmount mealAmount) async {
     final newMealAmount = await _showEditMealAmountDialog(mealAmount);
     if (newMealAmount == null) return;
 
     setState(() {
-      _dayMeals = _dayMeals.copyWith(
-          meals: _dayMeals.meals
+      final newDayMeals = dayMeals.copyWith(
+          meals: dayMeals.meals
               .map((e) => e == mealAmount ? newMealAmount : e)
               .toList());
-      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+
+      _allDayMeals[_allDayMealsPosition] = newDayMeals;
+      dayMealsRepository.save(dayMeals.date, newDayMeals);
     });
   }
 
-  Future<void> _onMealAmountCardDismissed(MealAmount mealAmount) async {
+  Future<void> _onMealAmountCardDismissed(DayMeals dayMeals, MealAmount mealAmount) async {
     setState(() {
-      _dayMeals = _dayMeals.copyWith(
-          meals: _dayMeals.meals
+      final newDayMeals = dayMeals.copyWith(
+          meals: dayMeals.meals
               .where((e) => e != mealAmount)
               .toList());
-      dayMealsRepository.save(_dayMeals.date, _dayMeals);
+      _allDayMeals[_allDayMealsPosition] = newDayMeals;
+      dayMealsRepository.save(dayMeals.date, newDayMeals);
     });
   }
 
@@ -200,7 +198,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                   ),
                   Row(
                     children: [
-                      Text('Marcar'),
+                      const Text('Marcar'),
                       Checkbox(
                         value: highlighted,
                         onChanged: (_) {
