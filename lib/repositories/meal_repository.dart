@@ -16,16 +16,22 @@ class MealRepository {
   Future<List<Meal>> findAll() async {
     final list = await _dbConnector.meal.find(await _dbConnector.db);
     return list
-        .map((record) => Meal.fromJson(record.value))
+        .map((record) => Meal.fromJson({...record.value, 'id': record.key}))
         .toList();
   }
 
-  Future<void> add(Meal meal) async {
-    await _dbConnector.meal.add(await _dbConnector.db, meal.toJson());
+  Future<Meal> add(Meal meal) async {
+    final key = await _dbConnector.meal.add(await _dbConnector.db, meal.toJson());
+    return meal.copyWith(id: key);
   }
 
-  Future<void> save(int index, Meal meal) async {
-    final key = index + 1;
-    await _dbConnector.meal.record(key).put(await _dbConnector.db, meal.toJson());
+  Future<void> save(Meal meal) async {
+    assert(meal.id != null);
+    await _dbConnector.meal.record(meal.id!).put(await _dbConnector.db, meal.toJson());
+  }
+
+  Future<void> delete(Meal meal) async {
+    assert(meal.id != null);
+    await _dbConnector.meal.record(meal.id!).delete(await _dbConnector.db);
   }
 }

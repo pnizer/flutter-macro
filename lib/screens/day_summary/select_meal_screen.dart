@@ -41,9 +41,9 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
           final meal = await _showEditMealAmountDialog(
               const Meal('', 0, 0, 0, 100, 'g'));
           if (meal == null) return;
-          await _mealRepository.add(meal);
+          final savedMeal = await _mealRepository.add(meal);
           setState(() {
-            _meals = [..._meals, meal];
+            _meals = [..._meals, savedMeal];
           });
         },
         child: const Icon(Icons.add),
@@ -70,23 +70,51 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
               itemBuilder: (context, index) {
                 final meal = filteredMeals[index];
 
-                return MealCard(
-                  meal: meal,
-                  onTap: () {
-                    Navigator.pop(context, meal);
+                return Dismissible(
+                  key: Key(meal.id.toString()),
+                  confirmDismiss: (_) async {
+                    return await showDialog(
+                        context: context,
+                        builder: (BuildContext context) {
+                      return AlertDialog(
+                        title: const Text("Confirmação"),
+                        content: Text("Gostaria mesmo de apagar a refeição '${meal.name}'?"),
+                        actions: <Widget>[
+                          TextButton(
+                              onPressed: () => Navigator.of(context).pop(true),
+                              child: const Text("APAGAR")
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.of(context).pop(false),
+                            child: const Text("CANCELAR"),
+                          ),
+                        ],
+                      );
+                    });
                   },
-                  onLongPress: () async {
-                    final newMeal = await _showEditMealAmountDialog(meal);
-
-                    if (newMeal == null) return;
-                    final indexWithoutFilter = _meals.indexOf(meal);
-
-                    await _mealRepository.save(indexWithoutFilter, newMeal);
+                  onDismissed: (_) async {
+                    await _mealRepository.delete(meal);
                     final meals = await _mealRepository.findAll();
                     setState(() {
                       _meals = meals;
                     });
                   },
+                  child: MealCard(
+                    onTap: () {
+                      Navigator.pop(context, meal);
+                    },
+                    meal: meal,
+                    onLongPress: () async {
+                      final modifiedMeal = await _showEditMealAmountDialog(meal);
+
+                      if (modifiedMeal == null) return;
+                      await _mealRepository.save(modifiedMeal);
+                      final meals = await _mealRepository.findAll();
+                      setState(() {
+                        _meals = meals;
+                      });
+                    },
+                  )
                 );
               },
             ),
@@ -184,15 +212,15 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
                 TextButton(
                     child: const Text('OK'),
                     onPressed: () {
-                      final meal = Meal(
-                        nameController.value.text,
-                        double.parse(carbController.value.text),
-                        double.parse(fatController.value.text),
-                        double.parse(proteinController.value.text),
-                        double.parse(baseAmountController.value.text),
-                        unityController.value.text,
+                      final newMeal = meal.copyWith(
+                        name: nameController.value.text,
+                        carb: double.parse(carbController.value.text),
+                        fat: double.parse(fatController.value.text),
+                        protein: double.parse(proteinController.value.text),
+                        baseAmount: double.parse(baseAmountController.value.text),
+                        unity: unityController.value.text,
                       );
-                      Navigator.of(context).pop(meal);
+                      Navigator.of(context).pop(newMeal);
                     })
               ],
             );

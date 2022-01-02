@@ -5,7 +5,7 @@ import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 
 class DbConnector {
-  static const version = 2;
+  static const version = 3;
 
   // lazy loaded singleton instance
   static late final _instance = DbConnector._internal();
@@ -31,7 +31,7 @@ class DbConnector {
   }
 
   Future<void> _dbUpdate(Database db, int oldVersion, int newVersion) async {
-    if (oldVersion == 1) {
+    if (oldVersion == 0) {
       await meal.add(db, const Meal('Pão Francês', 23, 0, 3, 1, 'uni').toJson());
       await meal.add(db, const Meal('Presunto', 0, 0.5, 3.35, 20, 'g').toJson());
       await meal.add(db, const Meal('Queijo', 0.4, 4.8, 4.8, 20, 'g').toJson());
@@ -168,6 +168,16 @@ class DbConnector {
       await meal.add(db, const Meal('Pão de Mel Bauducco', 21, 2.5, 2.2, 1, 'uni').toJson());
       await meal.add(db, const Meal('Risoto tomate seco', 24.3, 5.72, 4.25, 100, 'g').toJson());
       await meal.add(db, const Meal('Casquinha BK', 32, 6, 3, 1, 'uni').toJson());
+      oldVersion++;
+    }
+
+    if (oldVersion == 1) {
+      // no changes
+      oldVersion++;
+    }
+
+    if (oldVersion == 2) {
+      // no changes
       oldVersion++;
     }
   }
