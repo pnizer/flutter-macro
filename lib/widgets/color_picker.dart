@@ -34,7 +34,7 @@ class _ColorPickerState extends State<ColorPicker> {
               splashFactory: NoSplash.splashFactory,
               highlightColor: Colors.transparent,
               onTap: () {
-                if (_selectedColor == itemColor) {
+                if (_selectedColor?.value == itemColor.value) {
                   _selectedColor = null;
                 } else {
                   _selectedColor = itemColor;

@@ -37,15 +37,7 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
         title: const Text('Adicionar refeição'),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () async {
-          final meal = await _showEditMealAmountDialog(
-              const Meal('', 0, 0, 0, 100, 'g'));
-          if (meal == null) return;
-          final savedMeal = await _mealRepository.add(meal);
-          setState(() {
-            _meals = [..._meals, savedMeal];
-          });
-        },
+        onPressed: _createNewMeal,
         child: const Icon(Icons.add),
       ),
       body: Column(
@@ -64,64 +56,81 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
               suffixIcon: Icon(Icons.filter_alt),
             ),
           ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: filteredMeals.length,
-              itemBuilder: (context, index) {
-                final meal = filteredMeals[index];
+          filteredMeals.isEmpty
+              ? TextButton(
+                  onPressed: _createNewMeal,
+                  child: const Text("Criar uma nova refeição..."),
+                )
+              : Expanded(
+                  child: ListView.builder(
+                    itemCount: filteredMeals.length,
+                    itemBuilder: (context, index) {
+                      final meal = filteredMeals[index];
 
-                return Dismissible(
-                  key: Key(meal.id.toString()),
-                  confirmDismiss: (_) async {
-                    return await showDialog(
-                        context: context,
-                        builder: (BuildContext context) {
-                      return AlertDialog(
-                        title: const Text("Confirmação"),
-                        content: Text("Gostaria mesmo de apagar a refeição '${meal.name}'?"),
-                        actions: <Widget>[
-                          TextButton(
-                              onPressed: () => Navigator.of(context).pop(true),
-                              child: const Text("APAGAR")
-                          ),
-                          TextButton(
-                            onPressed: () => Navigator.of(context).pop(false),
-                            child: const Text("CANCELAR"),
-                          ),
-                        ],
-                      );
-                    });
-                  },
-                  onDismissed: (_) async {
-                    await _mealRepository.delete(meal);
-                    final meals = await _mealRepository.findAll();
-                    setState(() {
-                      _meals = meals;
-                    });
-                  },
-                  child: MealCard(
-                    onTap: () {
-                      Navigator.pop(context, meal);
-                    },
-                    meal: meal,
-                    onLongPress: () async {
-                      final modifiedMeal = await _showEditMealAmountDialog(meal);
+                      return Dismissible(
+                          key: Key(meal.id.toString()),
+                          confirmDismiss: (_) async {
+                            return await showDialog(
+                                context: context,
+                                builder: (BuildContext context) {
+                                  return AlertDialog(
+                                    title: const Text("Confirmação"),
+                                    content: Text(
+                                        "Gostaria mesmo de apagar a refeição '${meal.name}'?"),
+                                    actions: <Widget>[
+                                      TextButton(
+                                          onPressed: () =>
+                                              Navigator.of(context).pop(true),
+                                          child: const Text("APAGAR")),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.of(context).pop(false),
+                                        child: const Text("CANCELAR"),
+                                      ),
+                                    ],
+                                  );
+                                });
+                          },
+                          onDismissed: (_) async {
+                            await _mealRepository.delete(meal);
+                            final meals = await _mealRepository.findAll();
+                            setState(() {
+                              _meals = meals;
+                            });
+                          },
+                          child: MealCard(
+                            onTap: () {
+                              Navigator.pop(context, meal);
+                            },
+                            meal: meal,
+                            onLongPress: () async {
+                              final modifiedMeal =
+                                  await _showEditMealAmountDialog(meal);
 
-                      if (modifiedMeal == null) return;
-                      await _mealRepository.save(modifiedMeal);
-                      final meals = await _mealRepository.findAll();
-                      setState(() {
-                        _meals = meals;
-                      });
+                              if (modifiedMeal == null) return;
+                              await _mealRepository.save(modifiedMeal);
+                              final meals = await _mealRepository.findAll();
+                              setState(() {
+                                _meals = meals;
+                              });
+                            },
+                          ));
                     },
-                  )
-                );
-              },
-            ),
-          )
+                  ),
+                )
         ],
       ),
     );
+  }
+
+  Future<void> _createNewMeal() async {
+    final meal =
+        await _showEditMealAmountDialog(Meal(_filter, 0, 0, 0, 100, 'g'));
+    if (meal == null) return;
+    final savedMeal = await _mealRepository.add(meal);
+    setState(() {
+      _meals = [..._meals, savedMeal];
+    });
   }
 
   Future<Meal?> _showEditMealAmountDialog(Meal meal) async {
@@ -217,7 +226,8 @@ class _SelectMealScreenState extends State<SelectMealScreen> {
                         carb: double.parse(carbController.value.text),
                         fat: double.parse(fatController.value.text),
                         protein: double.parse(proteinController.value.text),
-                        baseAmount: double.parse(baseAmountController.value.text),
+                        baseAmount:
+                            double.parse(baseAmountController.value.text),
                         unity: unityController.value.text,
                       );
                       Navigator.of(context).pop(newMeal);

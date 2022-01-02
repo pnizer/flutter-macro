@@ -76,7 +76,10 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       },
                       child: Row(
                         children: const <Widget>[
-                          Icon(Icons.undo, color: Colors.grey,),
+                          Icon(
+                            Icons.undo,
+                            color: Colors.grey,
+                          ),
                           Padding(
                             padding: EdgeInsets.only(left: 10),
                             child: Text("Desfazer"),
@@ -92,7 +95,10 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       },
                       child: Row(
                         children: const <Widget>[
-                          Icon(Icons.redo, color: Colors.grey,),
+                          Icon(
+                            Icons.redo,
+                            color: Colors.grey,
+                          ),
                           Padding(
                             padding: EdgeInsets.only(left: 10),
                             child: Text("Refazer"),
@@ -110,7 +116,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         child: const Icon(Icons.add),
       ),
       body: dayMeals == null
-          ? const Text('Carregando...')
+          ? const Center(child: CircularProgressIndicator())
           : SingleChildScrollView(
               child: Column(
                 children: [
@@ -158,23 +164,45 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       ],
                     ),
                   ),
-                  ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: dayMeals.meals.length,
-                      itemBuilder: (context, index) {
-                        final mealAmount = dayMeals.meals[index];
-                        return Dismissible(
-                          key: Key(mealAmount.hashCode.toString()),
-                          child: MealAmountCard(
-                            onTap: () =>
-                                _onMealAmountCardTap(dayMeals, mealAmount),
-                            mealAmount: mealAmount,
+                  dayMeals.meals.isEmpty
+                      ? TextButton(
+                          onPressed: () => _onAddButtonPressed(dayMeals),
+                          child: const Text("Adicionar uma refeição do dia..."),
+                        )
+                      : Theme(
+                          data: ThemeData(canvasColor: Colors.transparent),
+                          child: ReorderableListView.builder(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: dayMeals.meals.length,
+                            itemBuilder: (context, index) {
+                              final mealAmount = dayMeals.meals[index];
+                              return Dismissible(
+                                key: Key(mealAmount.hashCode.toString()),
+                                child: MealAmountCard(
+                                  onTap: () => _onMealAmountCardTap(
+                                      dayMeals, mealAmount),
+                                  mealAmount: mealAmount,
+                                ),
+                                onDismissed: (_) => _onMealAmountCardDismissed(
+                                    dayMeals, mealAmount),
+                              );
+                            },
+                            onReorder: (int oldIndex, int newIndex) async {
+                              final newMeals = [...dayMeals.meals];
+                              final element = newMeals.removeAt(oldIndex);
+                              newMeals.insert(
+                                  newIndex - (newIndex > oldIndex ? 1 : 0),
+                                  element);
+
+                              setState(() {
+                                final newDayMeals =
+                                    dayMeals.copyWith(meals: [...newMeals]);
+                                _changeCurrentDayMeals(newDayMeals);
+                              });
+                            },
                           ),
-                          onDismissed: (_) =>
-                              _onMealAmountCardDismissed(dayMeals, mealAmount),
-                        );
-                      }),
+                        ),
                 ],
               ),
             ),
@@ -210,11 +238,9 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
     if (_undoStackPosition < _undoStack.length) {
       _undoStack = _undoStack.sublist(0, _undoStackPosition);
     }
-    _undoStack
-        .add(_States(_allDayMealsPosition,
-          oldDayMeals: _allDayMeals[_allDayMealsPosition],
-          newDayMeals: newDayMeals
-      ));
+    _undoStack.add(_States(_allDayMealsPosition,
+        oldDayMeals: _allDayMeals[_allDayMealsPosition],
+        newDayMeals: newDayMeals));
     _undoStackPosition++;
   }
 
@@ -267,8 +293,8 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         context: context,
         builder: (context) {
           var color = HexColor.fromHex(mealAmount.color);
-          final controller =
-              TextEditingController(text: mealAmount.amount.toStringAsFixedIfHasDecimal(1));
+          final controller = TextEditingController(
+              text: mealAmount.amount.toStringAsFixedIfHasDecimal(1));
           controller.selection = TextSelection(
               baseOffset: 0, extentOffset: controller.text.length);
 
@@ -294,9 +320,13 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                           color = selectedColor;
                         });
                       },
-                      availableColors: const <Color>[Colors.yellow, Colors.green, Colors.red, Colors.blue],
-                      firstColor: color
-                  )
+                      availableColors: const <Color>[
+                        Colors.yellow,
+                        Colors.green,
+                        Colors.red,
+                        Colors.blue
+                      ],
+                      firstColor: color)
                 ],
               ),
               title: Text(mealAmount.meal.name),
@@ -320,5 +350,6 @@ class _States {
   final DayMeals oldDayMeals;
   final DayMeals newDayMeals;
 
-  _States(this.position, {required this.oldDayMeals, required this.newDayMeals});
+  _States(this.position,
+      {required this.oldDayMeals, required this.newDayMeals});
 }
