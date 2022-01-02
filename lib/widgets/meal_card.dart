@@ -1,7 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macro/models/meal.dart';
-import 'package:macro/utils/numbers/num_extension.dart';
+import 'package:macro/utils/extensions/num.dart';
 
 class MealCard extends StatelessWidget {
   final Meal meal;

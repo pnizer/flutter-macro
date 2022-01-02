@@ -1,7 +1,8 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:macro/models/meal_amount.dart';
-import 'package:macro/utils/numbers/num_extension.dart';
+import 'package:macro/utils/extensions/color.dart';
+import 'package:macro/utils/extensions/num.dart';
 
 class MealAmountCard extends StatelessWidget {
   final MealAmount mealAmount;
@@ -13,10 +14,13 @@ class MealAmountCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final unity = mealAmount.meal.unity;
 
-    final highlightColor = HSLColor.fromColor(Colors.yellow).withLightness(0.95).toColor();
+    Color? highlightColor;
+    if (mealAmount.color != null) {
+      highlightColor = HSLColor.fromColor(HexColor.fromHex(mealAmount.color)!).withLightness(0.95).toColor();
+    }
 
     return Card(
-      color: mealAmount.highlighted ? highlightColor : null,
+      color: highlightColor,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: <Widget>[

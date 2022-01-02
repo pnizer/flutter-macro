@@ -1,3 +1,4 @@
+import 'package:macro/utils/types.dart';
 import 'package:meta/meta.dart';
 
 import 'meal.dart';
@@ -6,9 +7,9 @@ import 'meal.dart';
 class MealAmount {
   final Meal meal;
   final double amount;
-  final bool highlighted;
+  final String? color;
 
-  const MealAmount(this.meal, this.amount, {this.highlighted = false});
+  const MealAmount(this.meal, this.amount, {this.color});
 
   double get carb => meal.carbPerUnit * amount;
   double get fat => meal.fatPerUnit * amount;
@@ -16,9 +17,9 @@ class MealAmount {
 
   double get kcal => carb * 4 + fat * 9 + protein * 4;
 
-  MealAmount copyWith({Meal? meal, double? amount, bool? highlighted}) {
+  MealAmount copyWith({Meal? meal, double? amount, String? color = undefinedString}) {
     return MealAmount(meal ?? this.meal, amount ?? this.amount,
-        highlighted: highlighted ?? this.highlighted,
+      color: color == undefinedString ? this.color : color,
     );
   }
 
@@ -26,13 +27,13 @@ class MealAmount {
     return MealAmount(
       Meal.fromJson(json['meal']),
       json['amount'],
-      highlighted: json['highlighted'] ?? false,
+      color: json['color'],
     );
   }
 
   Map<String, dynamic> toJson() => {
     'meal': meal.toJson(),
     'amount': amount,
-    'highlighted': highlighted,
+    'color': color,
   };
 }

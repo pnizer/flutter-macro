@@ -4,8 +4,10 @@ import 'package:macro/models/day_target.dart';
 import 'package:macro/models/meal.dart';
 import 'package:macro/models/meal_amount.dart';
 import 'package:macro/repositories/day_meals_repository.dart';
-import 'package:macro/utils/collections/collections_extension.dart';
-import 'package:macro/utils/numbers/num_extension.dart';
+import 'package:macro/utils/extensions/collection.dart';
+import 'package:macro/utils/extensions/color.dart';
+import 'package:macro/utils/extensions/num.dart';
+import 'package:macro/widgets/color_picker.dart';
 import 'package:macro/widgets/day_macro_summary.dart';
 import 'package:macro/widgets/meal_amount_card.dart';
 import 'package:macro/widgets/week_macro_summary.dart';
@@ -264,7 +266,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
     return await showDialog<MealAmount>(
         context: context,
         builder: (context) {
-          var highlighted = mealAmount.highlighted;
+          var color = HexColor.fromHex(mealAmount.color);
           final controller =
               TextEditingController(text: mealAmount.amount.toStringAsFixedIfHasDecimal(1));
           controller.selection = TextSelection(
@@ -286,18 +288,14 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       Text(mealAmount.meal.unity),
                     ],
                   ),
-                  Row(
-                    children: [
-                      const Text('Marcar'),
-                      Checkbox(
-                        value: highlighted,
-                        onChanged: (_) {
-                          setState(() {
-                            highlighted = !highlighted;
-                          });
-                        },
-                      ),
-                    ],
+                  ColorPicker(
+                      onSelectColor: (selectedColor) {
+                        setState(() {
+                          color = selectedColor;
+                        });
+                      },
+                      availableColors: const <Color>[Colors.yellow, Colors.green, Colors.red, Colors.blue],
+                      firstColor: color
                   )
                 ],
               ),
@@ -308,7 +306,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                     onPressed: () {
                       Navigator.of(context).pop(mealAmount.copyWith(
                           amount: double.parse(controller.value.text),
-                          highlighted: highlighted));
+                          color: color?.toHex()));
                     })
               ],
             );
