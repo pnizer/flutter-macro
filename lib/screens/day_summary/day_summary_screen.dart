@@ -4,6 +4,7 @@ import 'package:macro/models/day_target.dart';
 import 'package:macro/models/meal.dart';
 import 'package:macro/models/meal_amount.dart';
 import 'package:macro/repositories/day_meals_repository.dart';
+import 'package:macro/screens/day_summary/day_target_screen.dart';
 import 'package:macro/utils/extensions/collection.dart';
 import 'package:macro/utils/extensions/color.dart';
 import 'package:macro/utils/extensions/num.dart';
@@ -154,12 +155,24 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                               firstDate: firstDate,
                             );
                           },
+                          onTargetTap: () async {
+                            await Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (context) => DayTargetScreen(dayTarget: target)),
+                            );
+                          },
                         ),
                         WeekMacroSummary(
                           allDayMeals: _allDayMeals,
                           allDayMealsPosition: _allDayMealsPosition,
-                          dayTarget:
-                              target, // TODO each day meal should have its own day target
+                          dayTarget: target,
+                          onResetAccumulatorPressed: () {
+                            setState(() {
+                              final newDayMeals =
+                                dayMeals.copyWith(resetAccumulator: !dayMeals.resetAccumulator);
+                              _changeCurrentDayMeals(newDayMeals);
+                            });
+                          },
                         )
                       ],
                     ),

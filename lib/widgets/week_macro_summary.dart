@@ -8,14 +8,18 @@ class WeekMacroSummary extends StatelessWidget {
   final List<DayMeals> allDayMeals;
   final int allDayMealsPosition;
   final DayTarget dayTarget;
+  final void Function() onResetAccumulatorPressed;
 
-  const WeekMacroSummary({
-    Key? key, required this.allDayMeals, required this.allDayMealsPosition, required this.dayTarget
-  }) : super(key: key);
+  const WeekMacroSummary(
+      {Key? key,
+      required this.allDayMeals,
+      required this.allDayMealsPosition,
+      required this.dayTarget,
+      required this.onResetAccumulatorPressed})
+      : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-
     var position = allDayMealsPosition;
     var daysCount = 0;
     var carbTotalSum = 0.0;
@@ -37,7 +41,10 @@ class WeekMacroSummary extends StatelessWidget {
       }
       position--;
     }
-    var avarageKcal = (carbTotalSum * 4 + fatTotalSum * 9 + proteinTotalSum * 4) / daysCount;
+    var avarageKcal =
+        (carbTotalSum * 4 + fatTotalSum * 9 + proteinTotalSum * 4) / daysCount;
+
+    final resetAccumulator = allDayMeals[allDayMealsPosition].resetAccumulator;
 
     return Column(
       children: [
@@ -45,10 +52,10 @@ class WeekMacroSummary extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(10, 20, 10, 10),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
-              children: const <Widget>[
+              children: <Widget>[
                 Padding(
-                  padding: EdgeInsets.only(left: 10),
-                  child: Text('Acumulado', textScaleFactor: 1.3),
+                  padding: const EdgeInsets.only(left: 10),
+                  child: Text('Acumulado – $daysCount dia${daysCount > 1 ? 's' : ''}', textScaleFactor: 1.3),
                 ),
               ],
             )),
@@ -68,10 +75,28 @@ class WeekMacroSummary extends StatelessWidget {
           value: proteinTotalSum,
         ),
         Container(
-          alignment: AlignmentDirectional.centerStart,
-          padding: const EdgeInsets.fromLTRB(40, 5, 5, 5),
-          child: Text('kcal/dia: ${avarageKcal.toStringAsFixed(0)}'),
-        ),
+            padding: const EdgeInsets.fromLTRB(40, 5, 75, 5),
+            child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('kcal/dia: ${avarageKcal.toStringAsFixed(0)}'),
+                  InkWell(
+                      onTap: onResetAccumulatorPressed,
+                      child: Row(children: [
+                        const Text('Reiniciar: '),
+                        Container(
+                            decoration: BoxDecoration(
+                              border:
+                                  Border.all(width: 1, color: Colors.black45),
+                            ),
+                            child: Icon(
+                              Icons.check,
+                              size: 15,
+                              color:
+                                  !resetAccumulator ? Colors.transparent : null,
+                            ))
+                      ]))
+                ])),
       ],
     );
   }

@@ -10,16 +10,25 @@ class DayMacroSummary extends StatelessWidget {
   final VoidCallback? onDatePressed;
   final VoidCallback? onBackPressed;
   final VoidCallback? onForwardPressed;
+  final VoidCallback? onTargetTap;
 
   const DayMacroSummary(
-      {Key? key, required this.dayMeals, required this.target,
-        this.onDatePressed, this.onBackPressed, this.onForwardPressed})
+      {Key? key,
+      required this.dayMeals,
+      required this.target,
+      this.onDatePressed,
+      this.onBackPressed,
+      this.onForwardPressed,
+      this.onTargetTap})
       : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    final date = dayMeals.date.isNotEmpty ? DateTime.parse(dayMeals.date) : DateTime.now();
-    final formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString()}";
+    final date = dayMeals.date.isNotEmpty
+        ? DateTime.parse(dayMeals.date)
+        : DateTime.now();
+    final formattedDate =
+        "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString()}";
 
     return Column(
       children: [
@@ -34,20 +43,17 @@ class DayMacroSummary extends StatelessWidget {
               child: const Icon(Icons.arrow_back),
             ),
             TextButton(
-              style: TextButton.styleFrom(
-                primary: Colors.black87,
-              ),
-              onPressed: onDatePressed,
-              child: Row(
-                children: <Widget>[
+                style: TextButton.styleFrom(
+                  primary: Colors.black87,
+                ),
+                onPressed: onDatePressed,
+                child: Row(children: <Widget>[
                   const Icon(Icons.today_outlined),
                   Padding(
                     padding: const EdgeInsets.only(left: 10),
                     child: Text(formattedDate, textScaleFactor: 1.2),
                   ),
-                ]
-              )
-            ),
+                ])),
             TextButton(
               style: TextButton.styleFrom(
                 primary: Colors.black87,
@@ -57,28 +63,32 @@ class DayMacroSummary extends StatelessWidget {
             ),
           ],
         ),
-        MacroProgress(
-          type: "C",
-          target: target.carb,
-          value: dayMeals.carbTotal,
+        InkWell(
+          onTap: onTargetTap,
+          child: Column(children: [
+            MacroProgress(
+              type: "C",
+              target: target.carb,
+              value: dayMeals.carbTotal,
+            ),
+            MacroProgress(
+              type: "G",
+              target: target.fat,
+              value: dayMeals.fatTotal,
+            ),
+            MacroProgress(
+              type: "P",
+              target: target.protein,
+              value: dayMeals.proteinTotal,
+            ),
+            Container(
+              alignment: AlignmentDirectional.centerStart,
+              padding: const EdgeInsets.fromLTRB(40, 5, 5, 5),
+              child: Text('kcal: ${dayMeals.kcalTotal.toStringAsFixed(0)}'),
+            ),
+          ]),
         ),
-        MacroProgress(
-          type: "G",
-          target: target.fat,
-          value: dayMeals.fatTotal,
-        ),
-        MacroProgress(
-          type: "P",
-          target: target.protein,
-          value: dayMeals.proteinTotal,
-        ),
-        Container(
-          alignment: AlignmentDirectional.centerStart,
-          padding: const EdgeInsets.fromLTRB(40, 5, 5, 5),
-          child: Text('kcal: ${dayMeals.kcalTotal.toStringAsFixed(0)}'),
-        )
       ],
     );
   }
 }
-
