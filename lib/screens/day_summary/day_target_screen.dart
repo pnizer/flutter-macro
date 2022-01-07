@@ -1,6 +1,5 @@
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:macro/models/day_meals.dart';
 import 'package:macro/models/day_target.dart';
 import 'package:macro/utils/extensions/num.dart';
 
@@ -32,7 +31,20 @@ class _DayTargetScreenState extends State<DayTargetScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Objetivo diário'),
+        title: const Text('Objetivo diário'),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.check),
+              onPressed: () {
+                Navigator.pop(context, DayTarget(
+                  double.parse(_weightController.value.text),
+                  double.parse(_carbController.value.text),
+                  double.parse(_fatController.value.text),
+                  double.parse(_proteinController.value.text),
+                ));
+              },
+            ),
+          ]
       ),
       body: Padding(
         padding: EdgeInsets.symmetric(vertical: 10, horizontal: 10),

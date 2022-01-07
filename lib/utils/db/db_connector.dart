@@ -1,3 +1,4 @@
+import 'package:macro/models/day_target.dart';
 import 'package:macro/models/meal.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -5,7 +6,7 @@ import 'package:sembast/sembast.dart';
 import 'package:sembast/sembast_io.dart';
 
 class DbConnector {
-  static const version = 3;
+  static const version = 5;
 
   // lazy loaded singleton instance
   static late final _instance = DbConnector._internal();
@@ -177,6 +178,24 @@ class DbConnector {
     }
 
     if (oldVersion == 2) {
+      // no changes
+      oldVersion++;
+    }
+
+    if (oldVersion == 3) {
+      // no changes
+      oldVersion++;
+    }
+
+    if (oldVersion == 4) {
+      final dayMealsRecordList = await dayMeals.find(db);
+      for (var dayMealsRecord in dayMealsRecordList) {
+        final newValue = {
+          ...dayMealsRecord.value,
+          "target": const DayTarget(81, 2.5, 0.8, 2).toJson(),
+        };
+        await dayMeals.record(dayMealsRecord.key).put(db, newValue);
+      }
       // no changes
       oldVersion++;
     }

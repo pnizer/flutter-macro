@@ -24,7 +24,6 @@ class DaySummaryScreen extends StatefulWidget {
 
 class _DaySummaryScreenState extends State<DaySummaryScreen> {
   final dayMealsRepository = DayMealsRepository();
-  final target = const DayTarget(81, 2.5, 0.8, 2);
 
   final PageController _pageController = PageController();
 
@@ -45,8 +44,11 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
         final todayDayMeals =
             allDayMeals.firstWhereOrNull((element) => element.date == today);
         if (todayDayMeals == null) {
+          final previousDayMeals = allDayMeals.isNotEmpty ? allDayMeals.last : null;
+
           final dayMeals =
-              DayMeals(today, meals: const [], resetAccumulator: false);
+              DayMeals(today, meals: const [], resetAccumulator: false,
+                  target: previousDayMeals?.target ?? const DayTarget(81, 2.5, 0.8, 2));
           dayMealsRepository.save(today, dayMeals);
           _allDayMeals = [...allDayMeals, dayMeals];
           _allDayMealsPosition = _allDayMeals.length - 1;
@@ -128,7 +130,6 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                       children: <Widget>[
                         DayMacroSummary(
                           dayMeals: dayMeals,
-                          target: target,
                           onBackPressed: _allDayMealsPosition == 0
                               ? null
                               : () {
@@ -156,16 +157,22 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                             );
                           },
                           onTargetTap: () async {
-                            await Navigator.push(
+                            DayTarget? newDayTarget = await Navigator.push(
                               context,
-                              MaterialPageRoute(builder: (context) => DayTargetScreen(dayTarget: target)),
+                              MaterialPageRoute(builder: (context) => DayTargetScreen(dayTarget: dayMeals.target)),
                             );
+                            if (newDayTarget == null) return;
+
+                            setState(() {
+                              final newDayMeals =
+                              dayMeals.copyWith(target: newDayTarget);
+                              _changeCurrentDayMeals(newDayMeals);
+                            });
                           },
                         ),
                         WeekMacroSummary(
                           allDayMeals: _allDayMeals,
                           allDayMealsPosition: _allDayMealsPosition,
-                          dayTarget: target,
                           onResetAccumulatorPressed: () {
                             setState(() {
                               final newDayMeals =

@@ -1,20 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:macro/models/day_meals.dart';
-import 'package:macro/models/day_target.dart';
 
 import 'macro_progress.dart';
 
 class WeekMacroSummary extends StatelessWidget {
   final List<DayMeals> allDayMeals;
   final int allDayMealsPosition;
-  final DayTarget dayTarget;
   final void Function() onResetAccumulatorPressed;
 
   const WeekMacroSummary(
       {Key? key,
       required this.allDayMeals,
       required this.allDayMealsPosition,
-      required this.dayTarget,
       required this.onResetAccumulatorPressed})
       : super(key: key);
 
@@ -32,9 +29,9 @@ class WeekMacroSummary extends StatelessWidget {
       carbTotalSum += allDayMeals[position].carbTotal;
       fatTotalSum += allDayMeals[position].fatTotal;
       proteinTotalSum += allDayMeals[position].proteinTotal;
-      carbTargetSum += dayTarget.carb;
-      fatTargetSum += dayTarget.fat;
-      proteinTargetSum += dayTarget.protein;
+      carbTargetSum += allDayMeals[position].target.carb;
+      fatTargetSum += allDayMeals[position].target.fat;
+      proteinTargetSum += allDayMeals[position].target.protein;
       daysCount++;
       if (allDayMeals[position].resetAccumulator) {
         break;

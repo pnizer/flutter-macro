@@ -12,4 +12,20 @@ class DayTarget {
   double get carb => weight * carbGramWeight;
   double get fat => weight * fatGramWeight;
   double get protein => weight * proteinGramWeight;
+
+  factory DayTarget.fromJson(Map<String, dynamic> json) {
+    return DayTarget(
+      json['weight'],
+      json['carbGramWeight'],
+      json['fatGramWeight'],
+      json['proteinGramWeight'],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'weight': weight,
+    'carbGramWeight': carbGramWeight,
+    'fatGramWeight': fatGramWeight,
+    'proteinGramWeight': proteinGramWeight,
+  };
 }

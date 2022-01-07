@@ -6,7 +6,6 @@ import 'macro_progress.dart';
 
 class DayMacroSummary extends StatelessWidget {
   final DayMeals dayMeals;
-  final DayTarget target;
   final VoidCallback? onDatePressed;
   final VoidCallback? onBackPressed;
   final VoidCallback? onForwardPressed;
@@ -15,7 +14,6 @@ class DayMacroSummary extends StatelessWidget {
   const DayMacroSummary(
       {Key? key,
       required this.dayMeals,
-      required this.target,
       this.onDatePressed,
       this.onBackPressed,
       this.onForwardPressed,
@@ -68,17 +66,17 @@ class DayMacroSummary extends StatelessWidget {
           child: Column(children: [
             MacroProgress(
               type: "C",
-              target: target.carb,
+              target: dayMeals.target.carb,
               value: dayMeals.carbTotal,
             ),
             MacroProgress(
               type: "G",
-              target: target.fat,
+              target: dayMeals.target.fat,
               value: dayMeals.fatTotal,
             ),
             MacroProgress(
               type: "P",
-              target: target.protein,
+              target: dayMeals.target.protein,
               value: dayMeals.proteinTotal,
             ),
             Container(
