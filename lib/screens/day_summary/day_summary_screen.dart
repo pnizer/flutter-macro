@@ -187,7 +187,7 @@ class _DaySummaryScreenState extends State<DaySummaryScreen> {
                   dayMeals.meals.isEmpty
                       ? TextButton(
                           onPressed: () => _onAddButtonPressed(dayMeals),
-                          child: const Text("Adicionar uma refeição do dia..."),
+                          child: const Text("Adicionar refeição..."),
                         )
                       : Theme(
                           data: ThemeData(canvasColor: Colors.transparent),

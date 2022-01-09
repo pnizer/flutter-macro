@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:macro/models/day_meals.dart';
-import 'package:macro/models/day_target.dart';
 
 import 'macro_progress.dart';
 
@@ -22,11 +21,16 @@ class DayMacroSummary extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final date = dayMeals.date.isNotEmpty
-        ? DateTime.parse(dayMeals.date)
-        : DateTime.now();
-    final formattedDate =
-        "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year.toString()}";
+    final today = DateUtils.dateOnly(DateTime.now());
+    final date = DateTime.parse(dayMeals.date);
+
+    late String formattedDate;
+    if (today.isAtSameMomentAs(date)) {
+      formattedDate = "Hoje";
+    } else {
+      formattedDate = "${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(
+          2, '0')}/${date.year.toString()}";
+    }
 
     return Column(
       children: [
@@ -46,7 +50,6 @@ class DayMacroSummary extends StatelessWidget {
                 ),
                 onPressed: onDatePressed,
                 child: Row(children: <Widget>[
-                  const Icon(Icons.today_outlined),
                   Padding(
                     padding: const EdgeInsets.only(left: 10),
                     child: Text(formattedDate, textScaleFactor: 1.2),
